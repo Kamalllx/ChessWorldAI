@@ -1,0 +1,9 @@
+[Event "ChessWorldAI"]
+[Site "game_1"]
+[Date "2026.02.04"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+
+1. e4 e6 2. Be2 e5 3. Nf3 Nc6 4. Kf1 Bc5 5. g3 Bxf2 6. Kg2 d6 7. Qe1 Bg4 8. c3 Bh3+ *
