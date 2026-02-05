@@ -1,0 +1,935 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>♔ Chess Video Analyzer - Debug View</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #2c3e50;
+            --secondary: #3498db;
+            --success: #27ae60;
+            --warning: #f39c12;
+            --danger: #e74c3c;
+        }
+
+        body {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            min-height: 100vh;
+            color: #ecf0f1;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .main-container {
+            max-width: 1800px;
+            margin: 0 auto;
+            padding: 10px;
+        }
+
+        .header {
+            text-align: center;
+            padding: 10px 0;
+        }
+
+        .header h1 { font-size: 1.5rem; margin: 0; }
+
+        .card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+        }
+
+        .card-header {
+            background: rgba(255, 255, 255, 0.08);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 8px 12px;
+            font-weight: 600;
+        }
+
+        .card-body { padding: 10px; }
+
+        .video-container {
+            position: relative;
+            background: #000;
+            border-radius: 6px;
+            overflow: hidden;
+        }
+
+        #videoCanvas {
+            display: block;
+            width: 100%;
+            height: auto;
+            cursor: crosshair;
+        }
+
+        .video-overlay {
+            position: absolute;
+            top: 5px;
+            left: 5px;
+            background: rgba(0,0,0,0.7);
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+        }
+
+        .video-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            gap: 6px;
+            max-height: 120px;
+            overflow-y: auto;
+        }
+
+        .video-card {
+            background: rgba(255,255,255,0.05);
+            border: 2px solid transparent;
+            border-radius: 6px;
+            padding: 8px;
+            cursor: pointer;
+            text-align: center;
+            font-size: 10px;
+            transition: all 0.2s;
+        }
+
+        .video-card:hover { border-color: var(--secondary); }
+        .video-card.selected { border-color: var(--success); background: rgba(39,174,96,0.2); }
+
+        .moves-list {
+            max-height: 200px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+        }
+
+        .move-row {
+            display: flex;
+            padding: 2px 5px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .move-row.new { animation: highlight 1s ease; }
+        @keyframes highlight {
+            50% { background: rgba(39,174,96,0.4); }
+        }
+
+        .move-num { width: 25px; color: #888; }
+        .move-white, .move-black { flex: 1; }
+
+        .detection-panel {
+            max-height: 250px;
+            overflow-y: auto;
+            font-size: 11px;
+        }
+
+        .detection-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 3px 5px;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .detection-item:hover { background: rgba(255,255,255,0.05); }
+
+        .piece-white { color: #fff; font-weight: bold; }
+        .piece-black { color: #aaa; }
+
+        .state-board {
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            gap: 1px;
+            background: #333;
+            border: 2px solid #444;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .state-sq {
+            aspect-ratio: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+        .state-sq.light { background: #f0d9b5; }
+        .state-sq.dark { background: #b58863; }
+        .state-sq .piece-w { color: #fff; text-shadow: 1px 1px 2px #000; }
+        .state-sq .piece-b { color: #000; text-shadow: 1px 1px 2px #888; }
+
+        .btn-action {
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 13px;
+        }
+
+        .progress-bar-custom {
+            height: 4px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 2px;
+            margin: 5px 0;
+        }
+
+        .progress-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--secondary), var(--success));
+            border-radius: 2px;
+            transition: width 0.2s;
+        }
+
+        .corner-btn {
+            padding: 6px 12px;
+            margin: 2px;
+            font-weight: bold;
+        }
+
+        .corner-btn.active { background: var(--danger) !important; animation: pulse 1s infinite; }
+        .corner-btn.set { background: var(--success) !important; }
+
+        @keyframes pulse { 50% { transform: scale(1.05); } }
+
+        .status-badge {
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+        }
+
+        .status-ready { background: var(--secondary); }
+        .status-processing { background: var(--warning); color: #000; }
+        .status-complete { background: var(--success); }
+        .status-error { background: var(--danger); }
+
+        .confirm-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.9);
+            z-index: 1000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .confirm-modal.show { display: flex; }
+
+        .confirm-content {
+            background: #1a1a2e;
+            border: 2px solid var(--secondary);
+            border-radius: 12px;
+            max-width: 1200px;
+            max-height: 90vh;
+            overflow: auto;
+            padding: 20px;
+        }
+
+        .confirm-img {
+            max-width: 100%;
+            border-radius: 8px;
+        }
+
+        .detection-summary {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            margin: 15px 0;
+        }
+
+        .summary-box {
+            background: rgba(255,255,255,0.1);
+            padding: 10px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .summary-value { font-size: 24px; font-weight: bold; color: var(--secondary); }
+        .summary-label { font-size: 11px; color: #888; }
+
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+    <div class="main-container">
+        <!-- Header -->
+        <div class="header">
+            <h1>♔ Chess Video Analyzer <small class="text-muted">Debug Mode</small></h1>
+        </div>
+
+        <div class="row g-2">
+            <!-- Left: Video -->
+            <div class="col-lg-7">
+                <div class="card mb-2">
+                    <div class="card-header d-flex justify-content-between">
+                        <span><i class="fas fa-video me-2"></i>Video Feed</span>
+                        <span class="status-badge status-ready" id="statusBadge">Ready</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="video-container" id="videoContainer">
+                            <canvas id="videoCanvas"></canvas>
+                            <div class="video-overlay">
+                                <span id="frameInfo">Frame: 0/0</span>
+                            </div>
+                        </div>
+                        <div class="progress-bar-custom">
+                            <div class="progress-bar-fill" id="progressBar" style="width:0%"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Video Selection -->
+                <div class="card mb-2">
+                    <div class="card-header"><i class="fas fa-folder me-2"></i>Videos</div>
+                    <div class="card-body">
+                        <div class="video-grid" id="videoGrid">Loading...</div>
+                    </div>
+                </div>
+
+                <!-- Controls -->
+                <div class="card">
+                    <div class="card-header"><i class="fas fa-sliders-h me-2"></i>Controls</div>
+                    <div class="card-body">
+                        <div class="row align-items-center">
+                            <div class="col-auto">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="manualMode">
+                                    <label class="form-check-label" for="manualMode">Manual Corners</label>
+                                </div>
+                            </div>
+                            <div class="col" id="cornerBtns" style="display:none;">
+                                <button class="btn btn-sm btn-outline-light corner-btn" data-corner="a1">a1</button>
+                                <button class="btn btn-sm btn-outline-light corner-btn" data-corner="h1">h1</button>
+                                <button class="btn btn-sm btn-outline-light corner-btn" data-corner="h8">h8</button>
+                                <button class="btn btn-sm btn-outline-light corner-btn" data-corner="a8">a8</button>
+                                <button class="btn btn-sm btn-outline-warning" id="btnClear">Reset</button>
+                            </div>
+                            <div class="col-auto ms-auto">
+                                <button class="btn btn-primary btn-action" id="btnFindCorners" disabled>
+                                    <i class="fas fa-crosshairs me-1"></i>Find Corners
+                                </button>
+                                <button class="btn btn-info btn-action" id="btnAnalyze" disabled>
+                                    <i class="fas fa-search me-1"></i>Analyze
+                                </button>
+                                <button class="btn btn-success btn-action" id="btnProcess" disabled>
+                                    <i class="fas fa-play me-1"></i>Process
+                                </button>
+                                <button class="btn btn-danger btn-action hidden" id="btnStop">
+                                    <i class="fas fa-stop me-1"></i>Stop
+                                </button>
+                            </div>
+                        </div>
+                        <div class="row align-items-center mt-2">
+                            <div class="col-auto">
+                                <label class="form-label mb-0"><i class="fas fa-tachometer-alt me-1"></i>Speed:</label>
+                            </div>
+                            <div class="col">
+                                <input type="range" class="form-range" id="speedSlider" min="0.25" max="2" step="0.25" value="0.5">
+                            </div>
+                            <div class="col-auto">
+                                <span id="speedValue" class="badge bg-secondary">0.5x (Slow)</span>
+                            </div>
+                        </div>
+                        <div class="mt-2" id="cornerInstruction" style="display:none;">
+                            <small class="text-warning"><i class="fas fa-hand-pointer me-1"></i>Click corners in order: a1 → h1 → h8 → a8</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right: Detection Info -->
+            <div class="col-lg-5">
+                <!-- Current Board State -->
+                <div class="card mb-2">
+                    <div class="card-header"><i class="fas fa-chess-board me-2"></i>Detected Board State</div>
+                    <div class="card-body">
+                        <div class="state-board" id="stateBoard"></div>
+                    </div>
+                </div>
+
+                <!-- Moves -->
+                <div class="card mb-2">
+                    <div class="card-header d-flex justify-content-between">
+                        <span><i class="fas fa-list me-2"></i>Moves</span>
+                        <span class="badge bg-secondary" id="moveCount">0</span>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="moves-list" id="movesList">
+                            <div class="text-muted text-center py-3">No moves yet</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Detection Log -->
+                <div class="card mb-2">
+                    <div class="card-header d-flex justify-content-between">
+                        <span><i class="fas fa-eye me-2"></i>Piece Detections</span>
+                        <span class="badge bg-info" id="pieceCount">0</span>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="detection-panel" id="detectionPanel">
+                            <div class="text-muted text-center py-3">Detections will appear here</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Download -->
+                <div class="card">
+                    <div class="card-header"><i class="fas fa-download me-2"></i>Export</div>
+                    <div class="card-body">
+                        <button class="btn btn-success w-100" id="btnDownload" disabled>
+                            <i class="fas fa-file-download me-1"></i>Download PGN
+                        </button>
+                        <pre class="mt-2 p-2 rounded" id="pgnPreview" style="background:rgba(0,0,0,0.3);font-size:10px;max-height:100px;overflow:auto;">*</pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Confirmation Modal -->
+    <div class="confirm-modal" id="confirmModal">
+        <div class="confirm-content">
+            <h4 class="mb-3"><i class="fas fa-check-circle text-success me-2"></i>Initial Board Analysis - Smart Tracking</h4>
+            <p class="text-muted">Using known starting position (32 pieces). Green = detected correctly, Orange = wrong piece, Red = not detected.</p>
+            
+            <div class="row">
+                <div class="col-md-8">
+                    <img id="confirmImage" class="confirm-img" src="">
+                </div>
+                <div class="col-md-4">
+                    <div class="detection-summary">
+                        <div class="summary-box">
+                            <div class="summary-value text-success" id="confirmCorrect">0</div>
+                            <div class="summary-label">Detected ✓</div>
+                        </div>
+                        <div class="summary-box">
+                            <div class="summary-value text-warning" id="confirmWrong">0</div>
+                            <div class="summary-label">Wrong Piece</div>
+                        </div>
+                        <div class="summary-box">
+                            <div class="summary-value text-danger" id="confirmMissing">0</div>
+                            <div class="summary-label">Not Detected</div>
+                        </div>
+                        <div class="summary-box">
+                            <div class="summary-value" id="confirmExpected">32</div>
+                            <div class="summary-label">Expected</div>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-2 mb-2">
+                        <small class="text-info"><i class="fas fa-info-circle me-1"></i>
+                        All 32 pieces will be tracked from known starting position. Missing detections will be initialized from expected position.</small>
+                    </div>
+                    
+                    <div class="mb-3" id="confirmDetectionList" style="max-height:250px;overflow:auto;font-size:11px;"></div>
+                </div>
+            </div>
+            
+            <div class="d-flex gap-2 mt-3">
+                <button class="btn btn-success btn-lg flex-grow-1" id="btnConfirmYes">
+                    <i class="fas fa-check me-2"></i>Start Processing with 32 Pieces
+                </button>
+                <button class="btn btn-outline-danger" id="btnConfirmNo">
+                    <i class="fas fa-times me-2"></i>Cancel
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ===== STATE =====
+        const state = {
+            selectedVideo: null,
+            videoPath: null,
+            corners: null,
+            manualCorners: { a1: null, h1: null, h8: null, a8: null },
+            activeCorner: null,
+            isManualMode: false,
+            isProcessing: false,
+            currentFrame: null,
+            totalFrames: 0,
+            moves: [],
+            boardState: {},
+            pgnFile: null,
+            eventSource: null
+        };
+
+        // ===== DOM =====
+        const canvas = document.getElementById('videoCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // ===== INIT =====
+        document.addEventListener('DOMContentLoaded', async () => {
+            await fetch('/api/init');
+            await loadVideos();
+            initStateBoard();
+            setupEvents();
+        });
+
+        function initStateBoard() {
+            const board = document.getElementById('stateBoard');
+            let html = '';
+            for (let rank = 7; rank >= 0; rank--) {
+                for (let file = 0; file < 8; file++) {
+                    const sq = rank * 8 + file;
+                    const name = 'abcdefgh'[file] + (rank + 1);
+                    const isLight = (file + rank) % 2 === 1;
+                    html += `<div class="state-sq ${isLight ? 'light' : 'dark'}" data-sq="${name}" title="${name}"></div>`;
+                }
+            }
+            board.innerHTML = html;
+        }
+
+        async function loadVideos() {
+            const res = await fetch('/api/sample-videos');
+            const data = await res.json();
+            const grid = document.getElementById('videoGrid');
+            
+            if (data.success && data.videos.length) {
+                grid.innerHTML = data.videos.map(v => `
+                    <div class="video-card" data-path="${v.path}" data-name="${v.name}">
+                        <i class="fas fa-film"></i><br>
+                        <span>${v.name}</span>
+                    </div>
+                `).join('');
+                
+                grid.querySelectorAll('.video-card').forEach(card => {
+                    card.onclick = () => selectVideo(card);
+                });
+            } else {
+                grid.innerHTML = '<div class="text-muted">No videos found</div>';
+            }
+        }
+
+        function setupEvents() {
+            // Speed slider
+            const speedSlider = document.getElementById('speedSlider');
+            const speedValue = document.getElementById('speedValue');
+            
+            speedSlider.oninput = () => {
+                const speed = parseFloat(speedSlider.value);
+                let label = speed + 'x';
+                if (speed <= 0.25) label += ' (Very Slow)';
+                else if (speed <= 0.5) label += ' (Slow)';
+                else if (speed <= 1) label += ' (Normal)';
+                else label += ' (Fast)';
+                speedValue.textContent = label;
+                
+                // Color coding
+                if (speed <= 0.5) {
+                    speedValue.className = 'badge bg-success';
+                } else if (speed <= 1) {
+                    speedValue.className = 'badge bg-secondary';
+                } else {
+                    speedValue.className = 'badge bg-warning text-dark';
+                }
+            };
+            // Initialize
+            speedSlider.dispatchEvent(new Event('input'));
+            
+            // Manual mode
+            document.getElementById('manualMode').onchange = (e) => {
+                state.isManualMode = e.target.checked;
+                document.getElementById('cornerBtns').style.display = e.target.checked ? 'block' : 'none';
+                document.getElementById('cornerInstruction').style.display = e.target.checked ? 'block' : 'none';
+                if (e.target.checked) {
+                    state.activeCorner = 'a1';
+                    updateCornerBtns();
+                }
+            };
+
+            // Corner buttons
+            document.querySelectorAll('.corner-btn[data-corner]').forEach(btn => {
+                btn.onclick = () => {
+                    state.activeCorner = btn.dataset.corner;
+                    updateCornerBtns();
+                };
+            });
+
+            document.getElementById('btnClear').onclick = () => {
+                state.manualCorners = { a1: null, h1: null, h8: null, a8: null };
+                state.activeCorner = 'a1';
+                state.corners = null;
+                updateCornerBtns();
+                if (state.currentFrame) drawFrame(state.currentFrame);
+            };
+
+            // Canvas click
+            canvas.onclick = (e) => {
+                if (!state.isManualMode || !state.activeCorner) return;
+                
+                const rect = canvas.getBoundingClientRect();
+                const x = (e.clientX - rect.left) * (canvas.width / rect.width);
+                const y = (e.clientY - rect.top) * (canvas.height / rect.height);
+                
+                state.manualCorners[state.activeCorner] = [x, y];
+                
+                // Next corner
+                const order = ['a1', 'h1', 'h8', 'a8'];
+                const idx = order.indexOf(state.activeCorner);
+                state.activeCorner = order[idx + 1] || null;
+                
+                updateCornerBtns();
+                drawFrameWithCorners();
+                
+                // Check if all set
+                if (Object.values(state.manualCorners).every(c => c)) {
+                    state.corners = { ...state.manualCorners };
+                    document.getElementById('btnAnalyze').disabled = false;
+                    setStatus('Corners set', 'ready');
+                }
+            };
+
+            // Buttons
+            document.getElementById('btnFindCorners').onclick = findCorners;
+            document.getElementById('btnAnalyze').onclick = analyzeInitial;
+            document.getElementById('btnProcess').onclick = startProcessing;
+            document.getElementById('btnStop').onclick = stopProcessing;
+            document.getElementById('btnDownload').onclick = downloadPGN;
+            
+            // Confirm modal
+            document.getElementById('btnConfirmYes').onclick = () => {
+                document.getElementById('confirmModal').classList.remove('show');
+                startProcessing();
+            };
+            document.getElementById('btnConfirmNo').onclick = () => {
+                document.getElementById('confirmModal').classList.remove('show');
+            };
+        }
+
+        function updateCornerBtns() {
+            document.querySelectorAll('.corner-btn[data-corner]').forEach(btn => {
+                btn.classList.remove('active', 'set');
+                if (state.manualCorners[btn.dataset.corner]) btn.classList.add('set');
+                if (btn.dataset.corner === state.activeCorner) btn.classList.add('active');
+            });
+        }
+
+        async function selectVideo(card) {
+            document.querySelectorAll('.video-card').forEach(c => c.classList.remove('selected'));
+            card.classList.add('selected');
+            
+            state.selectedVideo = card.dataset.name;
+            state.videoPath = card.dataset.path;
+            
+            await loadFrame(0);
+            document.getElementById('btnFindCorners').disabled = false;
+        }
+
+        async function loadFrame(num) {
+            const res = await fetch('/api/get-frame', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ videoPath: state.videoPath, frameNumber: num })
+            });
+            const data = await res.json();
+            
+            if (data.success) {
+                state.currentFrame = data.frame;
+                state.totalFrames = data.totalFrames;
+                document.getElementById('frameInfo').textContent = `Frame: ${num}/${data.totalFrames}`;
+                
+                if (state.isManualMode && Object.values(state.manualCorners).some(c => c)) {
+                    drawFrameWithCorners();
+                } else {
+                    drawFrame(data.frame);
+                }
+            }
+        }
+
+        function drawFrame(src) {
+            const img = new Image();
+            img.onload = () => {
+                canvas.width = img.width;
+                canvas.height = img.height;
+                ctx.drawImage(img, 0, 0);
+            };
+            img.src = src;
+        }
+
+        function drawFrameWithCorners() {
+            if (!state.currentFrame) return;
+            
+            const img = new Image();
+            img.onload = () => {
+                canvas.width = img.width;
+                canvas.height = img.height;
+                ctx.drawImage(img, 0, 0);
+                
+                const corners = ['a1', 'h1', 'h8', 'a8'];
+                const colors = { a1: '#27ae60', h1: '#3498db', h8: '#e74c3c', a8: '#9b59b6' };
+                
+                // Draw lines
+                ctx.strokeStyle = '#27ae60';
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                let first = true;
+                corners.forEach(c => {
+                    if (state.manualCorners[c]) {
+                        const [x, y] = state.manualCorners[c];
+                        if (first) { ctx.moveTo(x, y); first = false; }
+                        else ctx.lineTo(x, y);
+                    }
+                });
+                if (Object.values(state.manualCorners).every(c => c)) ctx.closePath();
+                ctx.stroke();
+                
+                // Draw points
+                corners.forEach(c => {
+                    if (state.manualCorners[c]) {
+                        const [x, y] = state.manualCorners[c];
+                        ctx.beginPath();
+                        ctx.arc(x, y, 12, 0, Math.PI * 2);
+                        ctx.fillStyle = colors[c];
+                        ctx.fill();
+                        ctx.strokeStyle = '#fff';
+                        ctx.lineWidth = 2;
+                        ctx.stroke();
+                        
+                        ctx.fillStyle = '#fff';
+                        ctx.font = 'bold 10px Arial';
+                        ctx.textAlign = 'center';
+                        ctx.textBaseline = 'middle';
+                        ctx.fillText(c, x, y);
+                    }
+                });
+            };
+            img.src = state.currentFrame;
+        }
+
+        async function findCorners() {
+            if (state.isManualMode) {
+                if (!Object.values(state.manualCorners).every(c => c)) {
+                    alert('Set all 4 corners first');
+                    return;
+                }
+                state.corners = { ...state.manualCorners };
+                document.getElementById('btnAnalyze').disabled = false;
+                setStatus('Corners set', 'ready');
+                return;
+            }
+            
+            setStatus('Finding corners...', 'processing');
+            document.getElementById('btnFindCorners').disabled = true;
+            
+            try {
+                const res = await fetch('/api/find-corners', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ image: state.currentFrame })
+                });
+                const data = await res.json();
+                
+                if (data.success) {
+                    state.corners = data.corners;
+                    state.currentFrame = data.visualization;
+                    drawFrame(data.visualization);
+                    document.getElementById('btnAnalyze').disabled = false;
+                    setStatus('Corners found', 'ready');
+                } else {
+                    setStatus(data.message || 'Failed', 'error');
+                }
+            } catch (e) {
+                setStatus('Error: ' + e.message, 'error');
+            }
+            
+            document.getElementById('btnFindCorners').disabled = false;
+        }
+
+        async function analyzeInitial() {
+            setStatus('Analyzing with smart tracking...', 'processing');
+            
+            try {
+                const res = await fetch('/api/analyze-initial', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ videoPath: state.videoPath, corners: state.corners })
+                });
+                const data = await res.json();
+                
+                if (data.success) {
+                    // Show confirmation modal with new format
+                    document.getElementById('confirmImage').src = data.visualization;
+                    document.getElementById('confirmCorrect').textContent = data.num_detected_correct;
+                    document.getElementById('confirmWrong').textContent = data.num_detected_wrong;
+                    document.getElementById('confirmMissing').textContent = data.num_not_detected;
+                    document.getElementById('confirmExpected').textContent = data.num_expected;
+                    
+                    // Detection list - show expected vs detected
+                    const list = document.getElementById('confirmDetectionList');
+                    let html = '';
+                    
+                    // Sort by match status: wrong first, then missing, then correct
+                    const sorted = [...data.detection_results].sort((a, b) => {
+                        if (!a.match && a.detected_piece) return -1;  // Wrong
+                        if (!a.detected_piece && a.expected_piece) return -1;  // Missing
+                        if (!b.match && b.detected_piece) return 1;
+                        if (!b.detected_piece && b.expected_piece) return 1;
+                        return 0;
+                    });
+                    
+                    for (const d of sorted) {
+                        let statusClass = 'text-success';
+                        let icon = '✓';
+                        
+                        if (d.expected_piece && !d.detected_piece) {
+                            statusClass = 'text-danger';
+                            icon = '✗';
+                        } else if (d.detected_piece && d.expected_piece && d.detected_piece !== d.expected_piece) {
+                            statusClass = 'text-warning';
+                            icon = '⚠';
+                        } else if (!d.expected_piece && d.detected_piece) {
+                            statusClass = 'text-info';
+                            icon = '?';
+                        }
+                        
+                        const isWhite = d.detected_piece ? d.detected_piece === d.detected_piece.toUpperCase() : 
+                                       (d.expected_piece ? d.expected_piece === d.expected_piece.toUpperCase() : false);
+                        
+                        html += `<div class="d-flex justify-content-between py-1 border-bottom border-secondary ${statusClass}">
+                            <span>${icon}</span>
+                            <span class="${isWhite ? 'piece-white' : 'piece-black'}">${d.detected_piece || '-'}</span>
+                            <span>${d.square_name}</span>
+                            <span class="text-muted">exp: ${d.expected_piece || '-'}</span>
+                            <span>${d.confidence ? (d.confidence * 100).toFixed(0) + '%' : '-'}</span>
+                        </div>`;
+                    }
+                    list.innerHTML = html || '<div class="text-muted">No detections</div>';
+                    
+                    document.getElementById('confirmModal').classList.add('show');
+                    document.getElementById('btnProcess').disabled = false;
+                    setStatus(`Ready: ${data.num_detected_correct}/32 detected`, 'ready');
+                } else {
+                    setStatus(data.message || 'Analysis failed', 'error');
+                }
+            } catch (e) {
+                setStatus('Error: ' + e.message, 'error');
+            }
+        }
+
+        function startProcessing() {
+            if (!state.corners || !state.videoPath) return;
+            
+            state.isProcessing = true;
+            state.moves = [];
+            
+            document.getElementById('btnProcess').classList.add('hidden');
+            document.getElementById('btnStop').classList.remove('hidden');
+            document.getElementById('btnFindCorners').disabled = true;
+            document.getElementById('btnAnalyze').disabled = true;
+            
+            setStatus('Processing...', 'processing');
+            document.getElementById('movesList').innerHTML = '';
+            
+            const speed = document.getElementById('speedSlider').value;
+            const url = `/api/process-video-stream?videoPath=${encodeURIComponent(state.videoPath)}&corners=${encodeURIComponent(JSON.stringify(state.corners))}&speed=${speed}`;
+            state.eventSource = new EventSource(url);
+            
+            state.eventSource.onmessage = (e) => {
+                const data = JSON.parse(e.data);
+                
+                if (data.error) {
+                    setStatus('Error: ' + data.error, 'error');
+                    stopProcessing();
+                    return;
+                }
+                
+                if (data.type === 'frame') {
+                    // Update video
+                    if (data.frame) drawFrame(data.frame);
+                    
+                    // Progress
+                    document.getElementById('progressBar').style.width = data.progress + '%';
+                    document.getElementById('frameInfo').textContent = `Frame: ${data.frameNumber}/${state.totalFrames}`;
+                    document.getElementById('pieceCount').textContent = data.numPieces;
+                    
+                    // Update board state
+                    if (data.stateSummary) updateBoardState(data.stateSummary);
+                    
+                    // Moves
+                    if (data.newMove) {
+                        state.moves = data.moves;
+                        updateMovesList();
+                    }
+                }
+                
+                if (data.type === 'complete') {
+                    state.moves = data.moves;
+                    state.pgnFile = data.pgnFile;
+                    document.getElementById('pgnPreview').textContent = data.pgn;
+                    updateMovesList();
+                    document.getElementById('btnDownload').disabled = false;
+                    setStatus('Complete! ' + state.moves.length + ' moves', 'complete');
+                    stopProcessing();
+                }
+            };
+            
+            state.eventSource.onerror = () => {
+                setStatus('Connection error', 'error');
+                stopProcessing();
+            };
+        }
+
+        function stopProcessing() {
+            state.isProcessing = false;
+            if (state.eventSource) {
+                state.eventSource.close();
+                state.eventSource = null;
+            }
+            document.getElementById('btnProcess').classList.remove('hidden');
+            document.getElementById('btnStop').classList.add('hidden');
+            document.getElementById('btnFindCorners').disabled = false;
+            document.getElementById('btnAnalyze').disabled = false;
+        }
+
+        function updateBoardState(summary) {
+            // Clear all
+            document.querySelectorAll('.state-sq').forEach(sq => sq.innerHTML = '');
+            
+            // Fill detected pieces
+            for (const [sqName, info] of Object.entries(summary)) {
+                const sq = document.querySelector(`.state-sq[data-sq="${sqName}"]`);
+                if (sq) {
+                    const isWhite = info.piece === info.piece.toUpperCase();
+                    sq.innerHTML = `<span class="piece-${isWhite ? 'w' : 'b'}">${getPieceSymbol(info.piece)}</span>`;
+                }
+            }
+        }
+
+        function getPieceSymbol(p) {
+            const symbols = { 'k': '♚', 'q': '♛', 'r': '♜', 'b': '♝', 'n': '♞', 'p': '♟',
+                             'K': '♔', 'Q': '♕', 'R': '♖', 'B': '♗', 'N': '♘', 'P': '♙' };
+            return symbols[p] || p;
+        }
+
+        function updateMovesList() {
+            let html = '';
+            for (let i = 0; i < state.moves.length; i += 2) {
+                const num = Math.floor(i / 2) + 1;
+                const isNew = i >= state.moves.length - 2;
+                html += `<div class="move-row ${isNew ? 'new' : ''}">
+                    <span class="move-num">${num}.</span>
+                    <span class="move-white">${state.moves[i] || ''}</span>
+                    <span class="move-black">${state.moves[i+1] || ''}</span>
+                </div>`;
+            }
+            document.getElementById('movesList').innerHTML = html || '<div class="text-muted text-center py-3">No moves yet</div>';
+            document.getElementById('moveCount').textContent = state.moves.length;
+        }
+
+        async function downloadPGN() {
+            if (!state.pgnFile) return;
+            window.open(`/api/download/${state.pgnFile}`, '_blank');
+        }
+
+        function setStatus(msg, type) {
+            const badge = document.getElementById('statusBadge');
+            badge.textContent = msg;
+            badge.className = 'status-badge status-' + type;
+        }
+    </script>
+</body>
+</html>
