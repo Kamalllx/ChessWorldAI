@@ -1,4 +1,4 @@
-[Event "ChessWorldAI"]
+[Event "ChessWorldAI V5"]
 [Site "game_5"]
 [Date "2026.02.04"]
 [Round "?"]
@@ -6,4 +6,4 @@
 [Black "?"]
 [Result "*"]
 
-1. Nh3 e6 *
+*

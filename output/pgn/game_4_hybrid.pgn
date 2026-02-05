@@ -1,4 +1,4 @@
-[Event "ChessWorldAI CameraChess"]
+[Event "ChessWorldAI Hybrid"]
 [Site "game_4"]
 [Date "2026.02.04"]
 [Round "?"]
@@ -6,4 +6,4 @@
 [Black "?"]
 [Result "*"]
 
-1. d4 d5 2. Be3 e6 3. c4 *
+1. Nh3 g6 2. Rg1 e6 3. d4 c6 4. Ng5 d5 *
