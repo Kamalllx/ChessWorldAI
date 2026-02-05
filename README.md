@@ -74,20 +74,6 @@ pip install ultralytics opencv-python numpy python-chess
 
 ### Run a Tracker
 
-**NEW Trackers (Recommended):**
-```bash
-# Position-based (fast, reliable)
-python trackers/v1_position_based.py videos/game_4.mp4
-
-# Model-based (high accuracy)
-python trackers/v2_model_based.py videos/game_4.mp4
-
-# Hybrid (best overall)
-python trackers/v3_hybrid.py videos/game_4.mp4
-
-# Optical flow (experimental)
-python trackers/v4_optical_flow.py videos/game_4.mp4 --show-flow
-```
 
 **Legacy Trackers:**
 ```bash
@@ -98,29 +84,9 @@ python legacy/run_tracker_v2.py videos/game_4.mp4 --speed 2.0
 python legacy/run_tracker_v2_enhanced.py videos/game_4.mp4 --debug
 ```
 
-### Batch Process All Videos
-
-```bash
-# Run on all 5 videos with all trackers
-python run_all_tests.py
-
-# Run specific trackers only
-python run_all_tests.py --trackers v1,v3,hybrid
-
-# Run specific videos only
-python run_all_tests.py --videos game_1,game_4
-```
 
 ## 📊 Approach Comparison
 
-### NEW Trackers
-
-| Tracker | Philosophy | Accuracy | Speed | Use Case |
-|---------|-----------|----------|-------|----------|
-| **V1: Position** | Trust starting position | High | Fast | Standard games |
-| **V2: Model** | Trust YOLO classification | Very High | Medium | Mid-game entry |
-| **V3: Hybrid** | Consensus of V1+V2 | **Highest** | Medium | **Production** |
-| **V4: Flow** | Detect motion | Medium | Very Fast | Experimental |
 
 ### Legacy Trackers
 
@@ -320,22 +286,5 @@ All trackers generate standard PGN files:
 - [trackers/README.md](trackers/README.md) - NEW tracker pipeline documentation
 - [legacy/README.md](legacy/README.md) - Legacy tracker documentation
 
-## 🤝 Contributing
-
-This project was developed iteratively with multiple experimental approaches. Each tracker represents a different insight into the chess detection problem.
-
-See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
-
-## 📄 License
-
-MIT License - see [LICENSE](LICENSE) for details.
-
-## 🙏 Acknowledgments
-
-- **CameraChessWeb** (Pbatch) - State matrix approach inspiration
-- **Roboflow** - Chess piece detection dataset
-- **Ultralytics** - YOLO implementation
-
----
 
 **Made with ♟️ by the ChessWorldAI Team**
