@@ -8,6 +8,7 @@ This project implements **11 different tracking approaches** for detecting chess
 - **4 NEW trackers** - Clean, well-documented implementations (recommended)
 - **6 LEGACY trackers** - Original iterative development versions
 - **1 Optical flow tracker** - Experimental motion-based approach
+- Theres also repo approach fo Chess Web (not very accurate) as well as flask app which on running will give a proper user intergface to work with 
 
 ## 📁 Project Structure
 
